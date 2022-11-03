@@ -1,10 +1,9 @@
 #pragma semicolon 1
+#pragma newdecls required
 
 #include <sourcemod>
 #include <sdktools>
-#include <l4d2_direct>
-#define L4D2UTIL_STOCKS_ONLY
-#include <l4d2util>
+#include <left4dhooks>
 #include <discord_webhook>
 #include "includes/finalemaps"
 
@@ -25,30 +24,26 @@
 
 #define MAXMAP                  32
 
-new     bool:   g_bInRound              = false;
-new iTankPercent = 0;
-new scoreTotals[2];
-new String:sPlayers[2][512];
-new String:titles[2][64];
-new String:sEmbedRequest[CONBUFSIZELARGE];
-new iEmbedCount = 0;
-new Handle: g_hCvarWebhookConfig = INVALID_HANDLE;
-new String: g_sWebhookName[64];
+bool g_bInRound = false;
+int iTankPercent = 0;
+int scoreTotals[2];
+char sPlayers[2][512];
+char titles[2][64];
+char sEmbedRequest[CONBUFSIZELARGE];
+int iEmbedCount = 0;
+Handle  g_hCvarWebhookConfig = INVALID_HANDLE;
+char g_sWebhookName[64];
 
-enum strMapType {
-    MP_FINALE
-};
-
-public Plugin: myinfo =
+public Plugin myinfo =
 {
     name = "Discord Scoreboard",
     author = "devilesk",
     description = "Reports round end stats to discord",
-    version = "1.4.4",
-    url = "https://steamcommunity.com/groups/RL4D2L"
+    version = "1.4.6",
+    url = "https://github.com/devilesk/rl4d2l-plugins"
 };
 
-public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
     RegPluginLibrary("discord_scoreboard");
     
@@ -56,60 +51,61 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
     return APLRes_Success;
 }
 
-public OnPluginStart()
+public void OnPluginStart()
 {
     g_hCvarWebhookConfig = CreateConVar("discord_scoreboard_webhook_cfg", "discord_scoreboard", "Name of webhook keyvalue entry to use in discord_webhook.cfg", FCVAR_NONE);
-    HookEvent("round_start",                Event_RoundStart,				EventHookMode_PostNoCopy);
-    HookEvent("round_end",                  Event_RoundEnd,				EventHookMode_PostNoCopy);
+    HookEvent("round_start", Event_RoundStart, EventHookMode_PostNoCopy);
+    HookEvent("round_end", Event_RoundEnd, EventHookMode_PostNoCopy);
 }
 
-public OnMapStart()
+public void OnMapStart()
 {
     sEmbedRequest[0] = '\0';
     iEmbedCount = 0;
 }
 
-public Event_RoundStart (Handle:hEvent, const String:name[], bool:dontBroadcast)
+public void Event_RoundStart(Handle hEvent, const char[] name, bool dontBroadcast)
 {
     g_bInRound = true;
-    new indexSurvivor = GameRules_GetProp("m_bAreTeamsFlipped");
-    new indexInfected = 1 - indexSurvivor;
+    int indexSurvivor = GameRules_GetProp("m_bAreTeamsFlipped");
+    int indexInfected = 1 - indexSurvivor;
     scoreTotals[indexSurvivor] = GameRules_GetProp("m_iCampaignScore", 2, indexSurvivor);
     scoreTotals[indexInfected] = GameRules_GetProp("m_iCampaignScore", 2, indexInfected);
     CreateTimer(6.0, SaveBossFlows, _, TIMER_FLAG_NO_MAPCHANGE);
 }
 
-public Action:SaveBossFlows(Handle:timer)
+public Action SaveBossFlows(Handle timer)
 {
-	if (!InSecondHalfOfRound())
-	{
-		iTankPercent = 0;
+    if (!InSecondHalfOfRound())
+    {
+        iTankPercent = 0;
 
-		if (L4D2Direct_GetVSTankToSpawnThisRound(0))
-		{
-			iTankPercent = RoundToNearest(GetTankFlow(0)*100.0);
-		}
-	}
-	else
-	{
-		if (iTankPercent != 0)
-		{
-			iTankPercent = RoundToNearest(GetTankFlow(1)*100.0);
-		}
-	}
+        if (L4D2Direct_GetVSTankToSpawnThisRound(0))
+        {
+            iTankPercent = RoundToNearest(GetTankFlow(0)*100.0);
+        }
+    }
+    else
+    {
+        if (iTankPercent != 0)
+        {
+            iTankPercent = RoundToNearest(GetTankFlow(1)*100.0);
+        }
+    }
+    return Plugin_Stop;
 }
 
-public Event_RoundEnd (Handle:hEvent, const String:name[], bool:dontBroadcast)
+public void Event_RoundEnd(Handle hEvent, const char[] name, bool dontBroadcast)
 {
     if ( !g_bInRound ) { return; }
     g_bInRound = false;
     CreateTimer( ROUNDEND_DELAY, Timer_RoundEnd, _, TIMER_FLAG_NO_MAPCHANGE );
 }
 
-public Action: Timer_RoundEnd ( Handle:timer )
+public Action Timer_RoundEnd(Handle timer)
 {
-    new String:sMap[64];
-    decl String:description[512];
+    char sMap[64];
+    char description[512];
     sPlayers[0][0] = '\0';
     sPlayers[1][0] = '\0';
     
@@ -125,14 +121,14 @@ public Action: Timer_RoundEnd ( Handle:timer )
     GetCurrentMapLower(sMap, sizeof(sMap));
     GetMapName(sMap, sMap, sizeof(sMap));
     
-    new indexSurvivor = GameRules_GetProp("m_bAreTeamsFlipped");
-    new indexInfected = 1 - indexSurvivor;
-    new totalSurvivor = GameRules_GetProp("m_iCampaignScore", 2, indexSurvivor);
-    new roundSurvivor = totalSurvivor - scoreTotals[indexSurvivor];
+    int indexSurvivor = GameRules_GetProp("m_bAreTeamsFlipped");
+    int indexInfected = 1 - indexSurvivor;
+    int totalSurvivor = GameRules_GetProp("m_iCampaignScore", 2, indexSurvivor);
+    int roundSurvivor = totalSurvivor - scoreTotals[indexSurvivor];
     scoreTotals[indexSurvivor] = totalSurvivor;
     Format(titles[indexSurvivor], sizeof(titles[]), "Team %d: %d (+%d)", InSecondHalfOfRound() ? 2 : 1, totalSurvivor, roundSurvivor);
     
-    for ( new client = 1; client <= MaxClients; client++ )
+    for ( int client = 1; client <= MaxClients; client++ )
     {
         if ( IS_VALID_SURVIVOR(client) )
         {
@@ -149,7 +145,7 @@ public Action: Timer_RoundEnd ( Handle:timer )
         strcopy(sPlayers[indexInfected], sizeof(sPlayers[]), "None");
     }
     if (InSecondHalfOfRound()) {
-        decl String:fields[CONBUFSIZELARGE];
+        char fields[CONBUFSIZELARGE];
         Format(fields, CONBUFSIZELARGE, "{\"name\":\"%s\",\"value\":\"%s\",\"inline\":%d},{\"name\":\"%s\",\"value\":\"%s\",\"inline\":%d}", titles[0], sPlayers[0], 1, titles[1], sPlayers[1], 1);
         InternalAddEmbed(sMap, description, "", 15158332, fields);
         FormatEmbedRequest(sEmbedRequest, sizeof(sEmbedRequest), sEmbedRequest);
@@ -161,6 +157,7 @@ public Action: Timer_RoundEnd ( Handle:timer )
             scoreTotals[1] = 0;
         }
     }
+    return Plugin_Stop;
 }
 
 bool GetMapName(const char[] mapId, char[] mapName, int iLength)
@@ -189,25 +186,25 @@ bool GetMapName(const char[] mapId, char[] mapName, int iLength)
     return true;
 }
 
-stock Float:GetTankFlow(round)
+stock float GetTankFlow(int round)
 {
     return L4D2Direct_GetVSTankFlowPercent(round);
 }
 
-public Native_AddEmbed(Handle:plugin, numParams)
+public int Native_AddEmbed(Handle plugin, int numParams)
 {
-    new len;
+    int len;
 
     GetNativeStringLength(1, len);
-    new String:title[len+1];
+    char[] title = new char[len+1];
     GetNativeString(1, title, len+1);
 
     GetNativeStringLength(2, len);
-    new String:description[len+1];
+    char[] description = new char[len+1];
     GetNativeString(2, description, len+1);
 
     GetNativeStringLength(3, len);
-    new String:url[len+1];
+    char[] url = new char[len+1];
     GetNativeString(3, url, len+1);
     
     int color = GetNativeCell(4);
@@ -215,18 +212,18 @@ public Native_AddEmbed(Handle:plugin, numParams)
     char fields[CONBUFSIZELARGE];
     char name[256];
     char value[256];
-    new inline;
+    int inline;
     
     for (int i = 5; i <= numParams; i+=3)
     {
         // field name
         GetNativeStringLength(i, len);
-        if (len <= 0) { return; }
+        if (len <= 0) { return 0; }
         GetNativeString(i, name, len+1);
         
         // field value
         GetNativeStringLength(i+1, len);
-        if (len <= 0) { return; }
+        if (len <= 0) { return 0; }
         GetNativeString(i+1, value, len+1);
         
         inline = GetNativeCellRef(i+2);
@@ -242,11 +239,12 @@ public Native_AddEmbed(Handle:plugin, numParams)
     }
     
     InternalAddEmbed(title, description, url, color, fields);
+    return 1;
 }
 
-InternalAddEmbed(const String:title[], const String:description[], const String:url[], color, const String:fields[])
+void InternalAddEmbed(const char[] title, const char[] description, const char[] url, int color, const char[] fields)
 {
-    decl String:sEmbed[CONBUFSIZELARGE];
+    char sEmbed[CONBUFSIZELARGE];
     FormatEmbed2(sEmbed, sizeof(sEmbed), title, description, url, color, fields);
     if (iEmbedCount == 0) {
         strcopy(sEmbedRequest, sizeof(sEmbedRequest), sEmbed);
@@ -255,4 +253,9 @@ InternalAddEmbed(const String:title[], const String:description[], const String:
         Format(sEmbedRequest, sizeof(sEmbedRequest), "%s,%s", sEmbedRequest, sEmbed);
     }
     iEmbedCount++;
+}
+
+int InSecondHalfOfRound()
+{
+    return GameRules_GetProp("m_bInSecondHalfOfRound");
 }

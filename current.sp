@@ -1,38 +1,40 @@
 #pragma semicolon 1
 
 #include <sourcemod>
-#include <l4d2_direct>
+#include <left4dhooks>
 #define L4D2UTIL_STOCKS_ONLY
 #include <l4d2util>
+
+#pragma newdecls required
 
 #define DEBUG 0
 #define MAX(%0,%1) (((%0) > (%1)) ? (%0) : (%1))
 #define MAX_PRECISION    3
 #define MIN_PRECISION    0
 
-new Handle:g_hVsBossBuffer = INVALID_HANDLE;
-new Handle:hCvarPrecision = INVALID_HANDLE;
+Handle g_hVsBossBuffer = INVALID_HANDLE;
+Handle hCvarPrecision = INVALID_HANDLE;
 
-public Plugin:myinfo =
+public Plugin myinfo =
 {
     name = "L4D2 Survivor Progress",
     author = "CanadaRox, Visor, Sir, devilesk",
     description = "Print survivor progress in flow percents.",
-    version = "2.3.1",
+    version = "2.4.0",
     url = "https://github.com/devilesk/rl4d2l-plugins"
 };
 
-public OnPluginStart()
+public void OnPluginStart()
 {
     RegConsoleCmd("sm_cur", CurrentCmd);
     RegConsoleCmd("sm_current", CurrentCmd);
     g_hVsBossBuffer = FindConVar("versus_boss_buffer");
-    hCvarPrecision = CreateConVar("current_precision", "1", "Number of decimal places to display.", FCVAR_PLUGIN, true, float(MIN_PRECISION), true, float(MAX_PRECISION));
+    hCvarPrecision = CreateConVar("current_precision", "1", "Number of decimal places to display.", 0, true, float(MIN_PRECISION), true, float(MAX_PRECISION));
 }
 
-public Action:CurrentCmd(client, args)
+public Action CurrentCmd(int client, int args)
 {
-    new precision = GetConVarInt(hCvarPrecision);
+    int precision = GetConVarInt(hCvarPrecision);
     if (args) {
         char x[8];
         GetCmdArg(1, x, sizeof(x));
@@ -40,8 +42,8 @@ public Action:CurrentCmd(client, args)
         if (precision < MIN_PRECISION) precision = MIN_PRECISION;
         if (precision > MAX_PRECISION) precision = MAX_PRECISION;
     }
-    new Float:proximity = RoundToNearestN(GetProximity() * 100.0, precision);
-    decl String:msg[128];
+    float proximity = RoundToNearestN(GetProximity() * 100.0, precision);
+    char msg[128];
     Format(msg, sizeof(msg), "\x01Current: \x04%%.%df%%%%", precision);
     PrintToChat(client, msg, proximity);
 
@@ -56,23 +58,23 @@ public Action:CurrentCmd(client, args)
     return Plugin_Handled;
 }
 
-stock Float:RoundToNearestN(Float:value, places) {
-    new Float:power = Pow(10.0, float(places));
+stock float RoundToNearestN(float value, int places) {
+    float power = Pow(10.0, float(places));
     return RoundToNearest(value * power) / power;
 }
 
-stock Float:GetProximity()
+stock float GetProximity()
 {
-    new Float:proximity = GetMaxSurvivorCompletion();
+    float proximity = GetMaxSurvivorCompletion();
     if (proximity > 1.0) proximity = 1.0;
     if (proximity < 0.0) proximity = 0.0;
     return proximity;
 }
 
-stock Float:GetMaxSurvivorCompletion()
+stock float GetMaxSurvivorCompletion()
 {
-    new Float:flow = 0.0;
-    for (new i = 1; i <= MaxClients; i++)
+    float flow = 0.0;
+    for (int i = 1; i <= MaxClients; i++)
     {
         if (IsSurvivor(i))
         {
@@ -86,8 +88,8 @@ stock Float:GetMaxSurvivorCompletion()
 }
 
 #if DEBUG
-stock PrintDebug(const String:Message[], any:...) {
-    decl String:DebugBuff[256];
+stock void PrintDebug(const char[] Message, any ...) {
+    char DebugBuff[256];
     VFormat(DebugBuff, sizeof(DebugBuff), Message, 2);
     LogMessage(DebugBuff);
     PrintToChatAll(DebugBuff);

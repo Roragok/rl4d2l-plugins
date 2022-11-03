@@ -1,4 +1,5 @@
 #pragma semicolon 1
+#pragma newdecls required
 
 #include <sourcemod>
 #include <discord_webhook>
@@ -6,48 +7,48 @@
 
 #define CONBUFSIZELARGE         (1 << 12)       // 4k
 
-public Plugin:myinfo =
+public Plugin myinfo =
 {
     name = "Discord Webhook",
     author = "devilesk",
-    version = "1.0.0",
+    version = "1.2.0",
     description = "Discord webhook functions.",
-    url = "https://steamcommunity.com/groups/RL4D2L"
+    url = "https://github.com/devilesk/rl4d2l-plugins"
 };
 
-public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
     RegPluginLibrary("discord_webhook");
-    
+
     CreateNative("FormatEmbed", Native_FormatEmbed);
     CreateNative("FormatEmbed2", Native_FormatEmbed2);
     CreateNative("FormatEmbedRequest", Native_FormatEmbedRequest);
     CreateNative("SendEmbedToDiscord", Native_SendEmbedToDiscord);
     CreateNative("SendMessageToDiscord", Native_SendMessageToDiscord);
     CreateNative("SendToDiscord", Native_SendToDiscord);
-    
+
     return APLRes_Success;
 }
 
-public Native_FormatEmbed(Handle:plugin, numParams)
+public int Native_FormatEmbed(Handle plugin, int numParams)
 {
     int bufferLen = GetNativeCell(2);
-    if (bufferLen < 1) { return; }
+    if (bufferLen < 1) { return 0; }
 
-    new String:buffer[bufferLen+1];
+    char[] buffer = new char[bufferLen+1];
 
-    new len;
+    int len;
 
     GetNativeStringLength(3, len);
-    new String:title[len+1];
+    char[] title = new char[len+1];
     GetNativeString(3, title, len+1);
 
     GetNativeStringLength(4, len);
-    new String:description[len+1];
+    char[] description = new char[len+1];
     GetNativeString(4, description, len+1);
 
     GetNativeStringLength(5, len);
-    new String:url[len+1];
+    char[] url = new char[len+1];
     GetNativeString(5, url, len+1);
     
     int color = GetNativeCell(6);
@@ -55,18 +56,18 @@ public Native_FormatEmbed(Handle:plugin, numParams)
     char fields[CONBUFSIZELARGE];
     char name[256];
     char value[256];
-    new inline;
+    int inline;
     
     for (int i = 7; i <= numParams; i+=3)
     {
         // field name
         GetNativeStringLength(i, len);
-        if (len <= 0) { return; }
+        if (len <= 0) { return 0; }
         GetNativeString(i, name, len+1);
         
         // field value
         GetNativeStringLength(i+1, len);
-        if (len <= 0) { return; }
+        if (len <= 0) { return 0; }
         GetNativeString(i+1, value, len+1);
         
         inline = GetNativeCellRef(i+2);
@@ -84,77 +85,83 @@ public Native_FormatEmbed(Handle:plugin, numParams)
     InternalFormatEmbed(buffer, bufferLen, title, description, url, color, fields);
     
     SetNativeString(1, buffer, bufferLen+1, false);
+
+    return 1;
 }
 
-public Native_FormatEmbed2(Handle:plugin, numParams)
+public int Native_FormatEmbed2(Handle plugin, int numParams)
 {
     int bufferLen = GetNativeCell(2);
-    if (bufferLen < 1) { return; }
+    if (bufferLen < 1) { return 0; }
 
-    new String:buffer[bufferLen+1];
+    char[] buffer = new char[bufferLen+1];
 
-    new len;
+    int len;
 
     GetNativeStringLength(3, len);
-    new String:title[len+1];
+    char[] title = new char[len+1];
     GetNativeString(3, title, len+1);
 
     GetNativeStringLength(4, len);
-    new String:description[len+1];
+    char[] description = new char[len+1];
     GetNativeString(4, description, len+1);
 
     GetNativeStringLength(5, len);
-    new String:url[len+1];
+    char[] url = new char[len+1];
     GetNativeString(5, url, len+1);
     
     int color = GetNativeCell(6);
 
     GetNativeStringLength(7, len);
-    new String:fields[len+1];
+    char[] fields = new char[len+1];
     GetNativeString(7, fields, len+1);
 
     InternalFormatEmbed(buffer, bufferLen+1, title, description, url, color, fields);
     SetNativeString(1, buffer, bufferLen+1, false);
+
+    return 1;
 }
 
-public Native_FormatEmbedRequest(Handle:plugin, numParams)
+public int Native_FormatEmbedRequest(Handle plugin, int numParams)
 {
     int bufferLen = GetNativeCell(2);
-    if (bufferLen < 1) { return; }
-    
-    new String:buffer[bufferLen+1];
-    
-    new len;
+    if (bufferLen < 1) { return 0; }
+
+    char[] buffer = new char[bufferLen+1];
+
+    int len;
 
     GetNativeStringLength(3, len);
-    if (len <= 0) { return; }
-    new String:message[len+1];
+    if (len <= 0) { return 0; }
+    char[] message = new char[len+1];
     GetNativeString(3, message, len+1);
 
     InternalFormatEmbedRequest(buffer, bufferLen+1, message);
     
     SetNativeString(1, buffer, bufferLen+1, false);
+
+    return 1;
 }
 
-public Native_SendEmbedToDiscord(Handle:plugin, numParams)
+public int Native_SendEmbedToDiscord(Handle plugin, int numParams)
 {
-    new len;
-    
+    int len;
+
     GetNativeStringLength(1, len);
-    if (len <= 0) { return; }
-    new String:webhook[len+1];
+    if (len <= 0) { return 0; }
+    char[] webhook = new char[len+1];
     GetNativeString(1, webhook, len+1);
 
     GetNativeStringLength(2, len);
-    new String:title[len+1];
+    char[] title = new char[len+1];
     GetNativeString(2, title, len+1);
 
     GetNativeStringLength(3, len);
-    new String:description[len+1];
+    char[] description = new char[len+1];
     GetNativeString(3, description, len+1);
 
     GetNativeStringLength(4, len);
-    new String:url[len+1];
+    char[] url = new char[len+1];
     GetNativeString(4, url, len+1);
     
     int color = GetNativeCell(5);
@@ -162,18 +169,18 @@ public Native_SendEmbedToDiscord(Handle:plugin, numParams)
     char fields[CONBUFSIZELARGE];
     char name[256];
     char value[256];
-    new inline;
+    int inline;
     
     for (int i = 6; i <= numParams; i+=3)
     {
         // field name
         GetNativeStringLength(i, len);
-        if (len <= 0) { return; }
+        if (len <= 0) { return 0; }
         GetNativeString(i, name, len+1);
         
         // field value
         GetNativeStringLength(i+1, len);
-        if (len <= 0) { return; }
+        if (len <= 0) { return 0; }
         GetNativeString(i+1, value, len+1);
         
         inline = GetNativeCellRef(i+2);
@@ -189,66 +196,72 @@ public Native_SendEmbedToDiscord(Handle:plugin, numParams)
     }
 
     InternalSendEmbedToDiscord(webhook, title, description, url, color, fields);
+
+    return 1;
 }
 
-public Native_SendMessageToDiscord(Handle:plugin, numParams)
+public int Native_SendMessageToDiscord(Handle plugin, int numParams)
 {
-    new len;
-    
+    int len;
+
     GetNativeStringLength(1, len);
-    if (len <= 0) { return; }
-    new String:webhook[len+1];
+    if (len <= 0) { return 0; }
+    char[] webhook = new char[len+1];
     GetNativeString(1, webhook, len+1);
 
     GetNativeStringLength(2, len);
-    if (len <= 0) { return; }
-    new String:message[len+1];
+    if (len <= 0) { return 0; }
+    char[] message = new char[len+1];
     GetNativeString(2, message, len+1);
 
     InternalSendMessageToDiscord(webhook, message);
+
+    return 1;
 }
 
-public Native_SendToDiscord(Handle:plugin, numParams)
+public int Native_SendToDiscord(Handle plugin, int numParams)
 {
-    new len;
-    
+    int len;
+
     GetNativeStringLength(1, len);
-    if (len <= 0) { return; }
-    new String:webhook[len+1];
+    if (len <= 0) { return 0; }
+    char[] webhook = new char[len+1];
     GetNativeString(1, webhook, len+1);
 
     GetNativeStringLength(2, len);
-    if (len <= 0) { return; }
-    new String:message[len+1];
+    if (len <= 0) { return 0; }
+    char[] message = new char[len+1];
     GetNativeString(2, message, len+1);
 
     InternalSendToDiscord(webhook, message);
+
+    return 1;
 }
 
-InternalFormatEmbed(char[] buffer, bufferLen, const String:title[], const String:description[], const String:url[], color, const String:fields[])
+void InternalFormatEmbed(char[] buffer, int bufferLen, const char[] title, const char[] description, const char[] url, int color, const char[] fields)
 {
     Format(buffer, bufferLen, "{\"title\":\"%s\",\"description\":\"%s\",\"url\":\"%s\",\"color\": %d,\"fields\": [%s]}", title, description, url, color, fields);
 }
 
-InternalFormatEmbedRequest(char[] buffer, bufferLen, const String:sMessage[])
+void InternalFormatEmbedRequest(char[] buffer, int bufferLen, const char[] sMessage)
 {
     Format(buffer, bufferLen, "{\"embeds\": [%s]}", sMessage);
 }
 
-InternalSendEmbedToDiscord(const String:sWebhook[], const String:title[], const String:description[], const String:url[], color, const String:fields[]) {
+void InternalSendEmbedToDiscord(const char[] sWebhook, const char[] title, const char[] description, const char[] url, int color, const char[] fields) {
     char sMessage[CONBUFSIZELARGE];
     InternalFormatEmbed(sMessage, sizeof(sMessage), title, description, url, color, fields);
     InternalFormatEmbedRequest(sMessage, sizeof(sMessage), sMessage);
     InternalSendToDiscord(sWebhook, sMessage);
 }
 
-public void InternalSendMessageToDiscord(const char[] sWebhook, const char[] message) {
+void InternalSendMessageToDiscord(const char[] sWebhook, const char[] message) {
     char sMessage[4096];
     Format(sMessage, sizeof(sMessage), "{\"content\":\"%s\"}", message);
     InternalSendToDiscord(sWebhook, sMessage);
 }
 
-public void InternalSendToDiscord(const char[] sWebhook, const char[] message) {
+void InternalSendToDiscord(const char[] sWebhook, const char[] message) {
     char sUrl[512];
     if(!GetWebHook(sWebhook, sUrl, sizeof(sUrl)))
     {
@@ -258,29 +271,23 @@ public void InternalSendToDiscord(const char[] sWebhook, const char[] message) {
 
     Handle request = SteamWorks_CreateHTTPRequest(k_EHTTPMethodPOST, sUrl);
 
-    //SteamWorks_SetHTTPRequestGetOrPostParameter(request, "content", message);
-    //SteamWorks_SetHTTPRequestHeaderValue(request, "Content-Type", "application/x-www-form-urlencoded");
-
-    //char sMessage[4096];
-    //Format(sMessage, sizeof(sMessage), "{\"content\":\"%s\"}", message);
-    //Format(sMessage, sizeof(sMessage), "{\"embeds\": [{\"title\": \"Hello!\",\"description\": \"%s\"}]}", message);
     SteamWorks_SetHTTPRequestRawPostBody(request, "application/json", message, strlen(message));
-    LogMessage("%s", message);
+    PrintDebug("[InternalSendToDiscord] request %s", message);
     
     if(request == null || !SteamWorks_SetHTTPCallbacks(request, Discord_Callback) || !SteamWorks_SendHTTPRequest(request)) {
-        PrintToServer("[SendToSlack] SendToDiscord failed to fire");
+        PrintDebug("[InternalSendToDiscord] failed to fire");
         delete request;
     }
 }
 
-public Discord_Callback(Handle hRequest, bool bFailure, bool bRequestSuccessful, EHTTPStatusCode eStatusCode) {
+public void Discord_Callback(Handle hRequest, bool bFailure, bool bRequestSuccessful, EHTTPStatusCode eStatusCode) {
     if(!bFailure && bRequestSuccessful) {
         switch (eStatusCode) {
-            case 200:{
+            case k_EHTTPStatusCode200OK, k_EHTTPStatusCode204NoContent:{
                 //all gud
             }
             default: {
-                PrintToServer("[Send To Discord] failed with code [%i]", eStatusCode);
+                PrintDebug("[Discord_Callback] failed with code [%i]", eStatusCode);
                 SteamWorks_GetHTTPResponseBodyCallback(hRequest, Print_Response);
             }
         }
@@ -288,9 +295,9 @@ public Discord_Callback(Handle hRequest, bool bFailure, bool bRequestSuccessful,
     delete hRequest;
 }
 
-public Print_Response(const char[] sData)
+public void Print_Response(const char[] sData)
 {
-    PrintToServer("[Print_Response] %s", sData);
+    PrintDebug("[Print_Response] %s", sData);
 }
 
 bool GetWebHook(const char[] sWebhook, char[] sUrl, int iLength)
@@ -332,4 +339,10 @@ bool GetWebHook(const char[] sWebhook, char[] sUrl, int iLength)
     delete kv;
 
     return false;
+}
+
+stock void PrintDebug(const char[] Message, any ...) {
+    char DebugBuff[256];
+    VFormat(DebugBuff, sizeof(DebugBuff), Message, 2);
+    LogMessage(DebugBuff);
 }

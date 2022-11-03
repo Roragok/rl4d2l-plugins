@@ -1,26 +1,37 @@
-#if defined _l4d_tank_control_eq_included_
-  #endinput
+#if defined _l4d_tank_control_eq_included
+	#endinput
 #endif
-#define _l4d_tank_control_eq_included_
+#define _l4d_tank_control_eq_included
 
 forward Action TankControlEQ_OnChooseTank();
 
-forward TankControlEQ_OnTankGiven(const String:steamId[]);
+forward void TankControlEQ_OnTankGiven(const char[] steamId);
 
-forward TankControlEQ_OnTankControlReset();
+forward void TankControlEQ_OnTankChosen(const char[] steamId);
 
-native void TankControlEQ_SetTank(const String:steamId[]);
+forward void TankControlEQ_OnTankControlReset();
 
-native Handle TankControlEQ_GetWhosHadTank();
+native void TankControlEQ_SetTank(const char[] steamId);
+
+native ArrayList TankControlEQ_GetWhosHadTank();
+
+native ArrayList TankControlEQ_GetWhosNotHadTank();
 
 native void TankControlEQ_ClearWhosHadTank();
 
-native Handle TankControlEQ_GetTankPool();
+native ArrayList TankControlEQ_GetTankPool();
 
-public SharedPlugin __pl_l4d_tank_control_eq = 
+/**
+ * @brief Retrieves the selected tank's client index.
+ *
+ * @return			Client id of the selected tank, -1 if no one is selected.
+ */
+native int GetTankSelection();
+
+public SharedPlugin __pl_l4d_tank_control_eq =
 {
     name = "l4d_tank_control_eq",
-    file = "l4d_tank_control_eq.smx",
+    file = "l4d_tank_control_eq_rl4d2l.smx",
 #if defined REQUIRE_PLUGIN
     required = 1,
 #else
@@ -31,8 +42,10 @@ public SharedPlugin __pl_l4d_tank_control_eq =
 #if !defined REQUIRE_PLUGIN
 public void __pl_l4d_tank_control_eq_SetNTVOptional()
 {
+    MarkNativeAsOptional("GetTankSelection");
     MarkNativeAsOptional("TankControlEQ_SetTank");
     MarkNativeAsOptional("TankControlEQ_GetWhosHadTank");
+    MarkNativeAsOptional("TankControlEQ_GetWhosNotHadTank");
     MarkNativeAsOptional("TankControlEQ_ClearWhosHadTank");
     MarkNativeAsOptional("TankControlEQ_GetTankPool");
 }
